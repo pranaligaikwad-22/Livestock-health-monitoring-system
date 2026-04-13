@@ -1,11 +1,13 @@
-name: CI Pipeline
+name: CI/CD + MLOps Pipeline
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  build:
+
+  # ✅ Job 1: Run Tests
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,10 +19,51 @@ jobs:
       with:
         python-version: "3.10"
 
-    - name: Install Dependencies
+    - name: Install Requirements
       run: |
         pip install -r catle/requirements.txt
 
-    - name: Check Python Syntax
+    - name: Run Tests
       run: |
-        python -m py_compile catle/app.py
+        python catle/test_mongo.py
+
+
+  # ✅ Job 2: MLOps Train & Evaluate
+  mlops:
+    runs-on: ubuntu-latest
+    needs: test   # runs after test
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Install Requirements
+      run: |
+        pip install -r catle/requirements.txt
+
+    - name: Train Model
+      run: |
+        python catle/train_model.py
+
+    - name: Evaluate Model
+      run: |
+        echo "Model trained successfully"
+
+
+  # ✅ Job 3: Build Docker Image
+  docker:
+    runs-on: ubuntu-latest
+    needs: mlops   # runs after mlops
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Build Docker Image
+      run: |
+        docker build -t livestock-app .
